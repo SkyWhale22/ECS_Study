@@ -1,107 +1,49 @@
-﻿#include "Test.h"
+﻿#include "Entity.h"
+#include "Component.h"
+#include "System.h"
 
-#include <new>
-#define EA_COMPILER_IS_CPLUSPLUS_0X // Visual C++ 2010対策
-#include <EASTL/vector.h>
-#include <EASTL/bitset.h>
+//#include <new>
+//#define EA_COMPILER_IS_CPLUSPLUS_0X // Visual C++ 2010対策
+#include <vector>
+#include <bitset>
 #include <memory>
-using namespace TEST;
-
-
-void* operator new[](size_t size, const char* pName, int flags,
-	unsigned debugFlags, const char* file, int line)
-{
-	return operator new[](size);
-}
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset,
-	const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	// doesn't support alignment
-	return operator new[](size);
-}
-
-void operator delete[](void* ptr, const char* pName, int flags,
-	unsigned debugFlags, const char* file, int line)
-{
-	operator delete[](ptr);
-}
-void operator delete[](void* ptr, size_t alignment, size_t alignmentOffset,
-	const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{
-	// doesn't support alignment
-	operator delete[](ptr);
-}
+#include <vld.h>
+//
+//void* operator new[](size_t size, const char* pName, int flags,
+//	unsigned debugFlags, const char* file, int line)
+//{
+//	return operator new[](size);
+//}
+//void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, 
+//	const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+//{
+//	// doesn't support alignment
+//	return operator new[](size);
+//}
+//
+//void operator delete[](void* ptr, const char* pName, int flags,
+//	unsigned debugFlags, const char* file, int line)
+//{
+//	operator delete[](ptr);
+//}
+//void operator delete[](void* ptr, size_t alignment, size_t alignmentOffset,
+//	const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+//{
+//	// doesn't support alignment
+//	operator delete[](ptr);
+//}
 
 template<typename Type>
-struct VecOfVec: public eastl::vector<eastl::vector<Type>> {};
-
-class Component
-{
-protected:
-	int ownerId;
-
-public:
-	virtual ~Component() = 0;
-	virtual void Print() { cout << "ownerId: " << ownerId; }
-};
-
-class Transform : public Component
-{
-public:
-	Transform() {}
-	Transform(int id) { ownerId = id; }
-
-	virtual void Print() override { Component::Print(); cout << "Transform" << endl; }
-};
-
-class Speed : public Component
-{
-public:
-	Speed(int id) { ownerId = id; }
-
-	virtual void Print() override { Component::Print(); cout << "Speed" << endl; }
-};
-
-class Health : public Component
-{
-public:
-	Health(int id) { ownerId = id; }
-
-	virtual void Print() override { Component::Print(); cout << "Health" << endl; }
-};
-
-class Sound : public Component
-{
-public:
-	Sound(int id) { ownerId = id; }
-
-	virtual void Print() override { Component::Print(); cout << "Sound" << endl; }
-};
-
-using ComponentId = size_t;
-
-ComponentId GetComponentId()
-{
-	// last ID
-	static ComponentId lastID = 0;
-	return ++lastID;
-}
-
-template <typename Type>
-ComponentId GetComponentId()
-{
-	static ComponentId typeID = GetComponentId();
-	return typeID;
-}
+struct VecOfVec: public std::vector<std::vector<Type>> {};
 
 class EntityManager
 {
 public:
-	using ComponentBitSet= eastl::bitset<32>; // 
-	using EntityBitSet = eastl::bitset<32>; // 
+	using ComponentBitSet= std::bitset<32>; // 
+	using EntityBitSet = std::bitset<32>; // 
 
-	eastl::vector<Entity*> entities;
-	eastl::vector<eastl::vector<std::unique_ptr<Component>>*> components;
+	std::vector<Entity*> entities;
+	std::vector<std::vector<std::unique_ptr<Component>>*> components;
 
 
 	ComponentBitSet componentBitSet;
@@ -113,7 +55,6 @@ public:
 	}
 	~EntityManager()
 	{
-		components.clear();
 	}
 
 	void CreateEntity()
@@ -124,48 +65,40 @@ public:
 	template<typename Type>
 	bool HasComponent() const
 	{
-		return componentBitSet[GetComponentID<Type>()];
+		return componentBitSet[GetComponentId<Type>()];
 	}
 
 	template<class CompType>
 	void AddComponent(int id)
 	{
-
 		// If given component was never created.
-		//if (!HasComponent<CompType>())
-		//{
-		//	components.emplace_back(new eastl::vector< std::unique_ptr<Component>>());
-		//}
-		//	   		 	  
-		//CompType* pComponent(new CompType(id));
-		//std::unique_ptr<Component> ptr{ pComponent };
-		//eastl::vector<std::unique_ptr<Component>>& temp = *components[GetComponentId<CompType>() - 1];
-		//temp.emplace_back(ptr);
-		//components[GetComponentId<CompType>() - 1]->push_back(ptr);
+		if (!HasComponent<CompType>())
+		{
+			components.emplace_back(new std::vector<std::unique_ptr<Component>>());
+		}
+		//int test = GetComponentId<CompType>() - 1;
+		if(components[GetComponentId<CompType>() - 1])
+		{
+			if (!entities[id]->HasComponent<CompType>())
+			{
+				CompType* pTest(new CompType());
+				pTest->SetOwnerId(id);
 
-		////m_componentArray[GetComponentID<Type>()] = pComponent;
-		//componentBitSet[GetComponentID<CompType>()] = true;
+				int currentIndex = components[GetComponentId<CompType>() - 1]->size();
+				pTest->SetCompId(currentIndex);
 
-
-/*
-		Type* pComponent(new Type(std::forward<TArgs>(args)...));
-		pComponent->m_pEntity = this;
-		std::unique_ptr<Component> ptr{ pComponent };
-		m_components.emplace_back(std::move(ptr));
-
-		m_componentArray[GetComponentID<Type>()] = pComponent;
-		m_componentBitSet[GetComponentID<Type>()] = true;
-
-		pComponent->Init();
-
-		return *pComponent;
-*/
+				std::unique_ptr<Component> ptr{ pTest };
+				components[GetComponentId<CompType>() - 1]->push_back(std::move(ptr));
+				componentBitSet[GetComponentId<CompType>()] = true;
+				entities[id]->AddComponent<CompType>(pTest);
+			}
+		}
 	}
 
 	template<class Type>
 	void Test()
 	{
-		eastl::vector<Type>* testVec = new eastl::vector<Type>();
+		std::vector<Type>* testVec = new std::vector<Type>();
 		if (testVec)
 			cout << "Success" << endl;
 		delete testVec;
@@ -175,37 +108,70 @@ public:
 	{
 		for (unsigned int i = 0; i < components.size(); ++i)
 		{
-
-			//for(TestClass* pClass : *pTest)
-			//	pClass->Print();
 			for (unsigned int j = 0; j < components[i]->size(); ++j)
+			{
+				// i: ComponentTypeId
+				// j: 
 				components.at(i)->at(j)->Print();
+			}
+
+			cout << endl << endl;
 		}
+	}
+
+	void Clear()
+	{
+		for (auto& entity : entities)
+		{
+			delete entity;
+			entity = nullptr;
+		}
+		
+		for (std::vector<std::unique_ptr<Component>>* pComponent : components)
+		{
+			for (unsigned int i = 0; i < pComponent->size(); ++i)
+			{
+				delete &pComponent[i];
+			}
+				
+		}
+		components.clear();
 	}
 };
 
 int main()
 {
+	//cout << "Tranform: "	<< GetComponentId<Transform>()	<< endl;
+	//cout << "Health: "		<< GetComponentId<Health>()		<< endl;
+	//cout << "Speed: "		<< GetComponentId<Speed>()		<< endl;
+	//cout << "Sound: "		<< GetComponentId<Sound>()		<< endl;
+	//cout << endl;
+
 	EntityManager manager;
 
-	manager.CreateEntity();
-	//manager.CreateEntity();
-	//manager.CreateEntity();
-
-
+	manager.CreateEntity(); // 0
+	manager.CreateEntity(); // 1
+	manager.CreateEntity(); // 2
+	manager.CreateEntity(); // 3
+	
 	manager.AddComponent<Transform>(0);
-	//manager.AddComponent<Health>(0);
-	//manager.AddComponent<Speed>(0);
-	//manager.AddComponent<Sound>(0);
+	manager.AddComponent<Speed>(2);
+	manager.AddComponent<Transform>(3);
+	manager.AddComponent<Health>(0);
+	manager.AddComponent<Sound>(2);
+	manager.AddComponent<Speed>(0);
+	manager.AddComponent<Sound>(0);
+	manager.AddComponent<Sound>(1);
+	manager.AddComponent<Speed>(1);
 
-	//manager.AddComponent<Health>(1);
-	//manager.AddComponent<Speed>(1);
-	//manager.AddComponent<Sound>(1);
+	manager.AddComponent<Health>(1);
 
-	//manager.AddComponent<Speed>(2);
-	//manager.AddComponent<Speed>(2);
 
-	//manager.RunTest();
+	manager.AddComponent<Sound>(3);
+	manager.AddComponent<Speed>(3);
+
+	manager.RunTest();
+	manager.Clear();
 
 	/*test.push_back(new eastl::vector<TestClass*>());
 	test.push_back(new eastl::vector<TestClass*>());
