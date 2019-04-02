@@ -1,88 +1,30 @@
 #pragma once
-class Component
+
+struct Component
 {
-protected:
-	int ownerId;
-	int componentTypeId;
-	int componentId;
 
-public:
-	virtual ~Component() {};
-	virtual void Print()
-	{
-		cout << "ownerId: " << ownerId << ",";
-		cout << " typeId: " << componentTypeId << ",";
-		cout << " componentId: " << componentId << ",";
-	}
-
-	void SetOwnerId(int id)
-	{
-		ownerId = id;
-	}
-
-	void SetCompId(int id)
-	{
-		componentId = id;
-	}
 };
 
-class Transform : public Component
+struct Vec2D
 {
-public:
-	Transform()
-	{
-		this->componentTypeId = GetComponentId<Transform>();
-	}
-
-	virtual void Print() override
-	{
-		Component::Print();
-		cout << " Component: Transform" << endl;
-	}
+	float m_x;
+	float m_y;
 };
 
-class Speed : public Component
+struct TransformComponent : public Component
 {
-public:
-	Speed()
-	{
-		this->componentTypeId = GetComponentId<Speed>();
-	}
-
-	virtual void Print() override
-	{
-		Component::Print();
-		cout << " Component: Speed" << endl;
-	}
+	Vec2D m_position;
 };
 
-class Health : public Component
+struct Renderable : public Component
 {
-public:
-	Health()
-	{
-		this->componentTypeId = GetComponentId<Health>();
-	}
-
-	virtual void Print() override
-	{
-		Component::Print();
-		cout << " Component: Health" << endl;
-	}
+	bool m_render;
+	const char* m_pHash;
 };
 
-class Sound : public Component
+struct HealthComponent : public Component
 {
-public:
-	Sound()
-	{
-		this->componentTypeId = GetComponentId<Sound>();
-	}
-
-	virtual void Print() override
-	{
-		Component::Print();
-		cout << " Component: Sound" << endl;
-	}
+	int m_hp;
+	int m_maxHp;
+	bool m_isDead;
 };
-
